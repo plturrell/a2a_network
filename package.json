@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "solidity-docgen": "^0.6.0",
-    "solhint": "^3.6.2"
+    "solhint": "^3.6.2",
+    "solhint-plugin-prettier": "^0.0.4"
   }
 }
