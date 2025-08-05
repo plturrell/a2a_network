@@ -14,7 +14,7 @@ contract DeployUpgradeableScript is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        
+
         vm.startBroadcast(deployerPrivateKey);
 
         console.log("Deploying upgradeable A2A Network contracts...");
@@ -29,14 +29,11 @@ contract DeployUpgradeableScript is Script {
             AgentRegistryUpgradeable.initialize.selector,
             deployer // initial owner
         );
-        
-        ERC1967Proxy registryProxy = new ERC1967Proxy(
-            address(registryImpl),
-            registryInitData
-        );
+
+        ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), registryInitData);
         console.log("AgentRegistry proxy deployed to:", address(registryProxy));
 
-        // 3. Deploy MessageRouter implementation  
+        // 3. Deploy MessageRouter implementation
         MessageRouterUpgradeable routerImpl = new MessageRouterUpgradeable();
         console.log("MessageRouter implementation deployed to:", address(routerImpl));
 
@@ -46,17 +43,14 @@ contract DeployUpgradeableScript is Script {
             address(registryProxy), // registry address
             deployer // initial owner
         );
-        
-        ERC1967Proxy routerProxy = new ERC1967Proxy(
-            address(routerImpl),
-            routerInitData
-        );
+
+        ERC1967Proxy routerProxy = new ERC1967Proxy(address(routerImpl), routerInitData);
         console.log("MessageRouter proxy deployed to:", address(routerProxy));
 
         // 5. Verify deployments by calling version functions
         AgentRegistryUpgradeable registry = AgentRegistryUpgradeable(address(registryProxy));
         MessageRouterUpgradeable router = MessageRouterUpgradeable(address(routerProxy));
-        
+
         console.log("AgentRegistry version:", registry.version());
         console.log("MessageRouter version:", router.version());
         console.log("Registry owner:", registry.owner());

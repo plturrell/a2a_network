@@ -9,7 +9,7 @@ contract AgentRegistryUpgradeableTest is Test {
     AgentRegistryUpgradeable public implementation;
     AgentRegistryUpgradeable public registry;
     ERC1967Proxy public proxy;
-    
+
     address public owner = address(this);
     address public agent1 = address(0x1);
     address public agent2 = address(0x2);
@@ -18,14 +18,11 @@ contract AgentRegistryUpgradeableTest is Test {
     function setUp() public {
         // Deploy implementation
         implementation = new AgentRegistryUpgradeable();
-        
+
         // Deploy proxy with initialization
-        bytes memory initData = abi.encodeWithSelector(
-            AgentRegistryUpgradeable.initialize.selector,
-            owner
-        );
+        bytes memory initData = abi.encodeWithSelector(AgentRegistryUpgradeable.initialize.selector, owner);
         proxy = new ERC1967Proxy(address(implementation), initData);
-        
+
         // Cast proxy to interface
         registry = AgentRegistryUpgradeable(address(proxy));
     }
@@ -44,7 +41,7 @@ contract AgentRegistryUpgradeableTest is Test {
 
     function testRegisterAgent() public {
         vm.startPrank(agent1);
-        
+
         bytes32[] memory capabilities = new bytes32[](2);
         capabilities[0] = keccak256("data_analysis");
         capabilities[1] = keccak256("market_research");
@@ -65,15 +62,15 @@ contract AgentRegistryUpgradeableTest is Test {
     function testUpgradeAuthorization() public {
         // Deploy new implementation
         AgentRegistryUpgradeable newImpl = new AgentRegistryUpgradeable();
-        
+
         // Only owner can upgrade
         vm.prank(nonOwner);
         vm.expectRevert();
         registry.upgradeToAndCall(address(newImpl), "");
-        
+
         // Owner can upgrade
         registry.upgradeToAndCall(address(newImpl), "");
-        
+
         // Verify upgrade
         assertEq(registry.version(), "1.0.0");
     }
@@ -84,17 +81,17 @@ contract AgentRegistryUpgradeableTest is Test {
         bytes32[] memory capabilities = new bytes32[](1);
         capabilities[0] = keccak256("test");
         registry.registerAgent("Agent1", "http://localhost:3000", capabilities);
-        
+
         // Store initial state
         AgentRegistryUpgradeable.Agent memory agentBefore = registry.getAgent(agent1);
         uint256 activeCountBefore = registry.activeAgentsCount();
-        
+
         // Deploy new implementation
         AgentRegistryUpgradeable newImpl = new AgentRegistryUpgradeable();
-        
+
         // Upgrade
         registry.upgradeToAndCall(address(newImpl), "");
-        
+
         // Verify storage persistence
         AgentRegistryUpgradeable.Agent memory agentAfter = registry.getAgent(agent1);
         assertEq(agentAfter.owner, agentBefore.owner);
@@ -109,18 +106,18 @@ contract AgentRegistryUpgradeableTest is Test {
         // Pause the contract
         registry.pause();
         assertTrue(registry.paused());
-        
+
         // Cannot register when paused
         vm.prank(agent1);
         bytes32[] memory capabilities = new bytes32[](1);
         capabilities[0] = keccak256("test");
         vm.expectRevert("AgentRegistry: paused");
         registry.registerAgent("Agent1", "http://localhost:3000", capabilities);
-        
+
         // Unpause
         registry.unpause();
         assertFalse(registry.paused());
-        
+
         // Can register again
         vm.prank(agent1);
         registry.registerAgent("Agent1", "http://localhost:3000", capabilities);
@@ -128,16 +125,16 @@ contract AgentRegistryUpgradeableTest is Test {
 
     function testOwnershipTransfer() public {
         address newOwner = address(0x999);
-        
+
         // Transfer ownership
         registry.transferOwnership(newOwner);
         assertEq(registry.owner(), newOwner);
-        
+
         // Old owner cannot upgrade anymore
         AgentRegistryUpgradeable newImpl = new AgentRegistryUpgradeable();
         vm.expectRevert();
         registry.upgradeToAndCall(address(newImpl), "");
-        
+
         // New owner can upgrade
         vm.prank(newOwner);
         registry.upgradeToAndCall(address(newImpl), "");
@@ -162,19 +159,19 @@ contract AgentRegistryUpgradeableTest is Test {
         bytes32[] memory capabilities = new bytes32[](1);
         capabilities[0] = keccak256("test");
         registry.registerAgent("Agent1", "http://localhost:3000", capabilities);
-        
+
         // First upgrade
         AgentRegistryUpgradeable newImpl1 = new AgentRegistryUpgradeable();
         registry.upgradeToAndCall(address(newImpl1), "");
-        
+
         // Verify data persists
         AgentRegistryUpgradeable.Agent memory agent = registry.getAgent(agent1);
         assertEq(agent.name, "Agent1");
-        
+
         // Second upgrade
         AgentRegistryUpgradeable newImpl2 = new AgentRegistryUpgradeable();
         registry.upgradeToAndCall(address(newImpl2), "");
-        
+
         // Verify data still persists
         agent = registry.getAgent(agent1);
         assertEq(agent.name, "Agent1");

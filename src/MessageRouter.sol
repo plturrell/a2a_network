@@ -13,8 +13,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 contract MessageRouter is Pausable, ReentrancyGuard {
     AgentRegistry public immutable registry;
 
-
-
     struct Message {
         address from;
         address to;
@@ -28,7 +26,7 @@ contract MessageRouter is Pausable, ReentrancyGuard {
     mapping(bytes32 => Message) public messages;
     mapping(address => bytes32[]) public agentMessages;
     mapping(address => uint256) public messageCounts;
-    
+
     // Rate limiting
     mapping(address => uint256) public lastMessageTime;
     mapping(address => uint256) public messagesSentInWindow;
@@ -36,13 +34,8 @@ contract MessageRouter is Pausable, ReentrancyGuard {
     uint256 public constant MAX_MESSAGES_PER_WINDOW = 100;
     uint256 public messageDelay = 5 seconds; // Minimum delay between messages
 
-    event MessageSent(
-        bytes32 indexed messageId,
-        address indexed from,
-        address indexed to,
-        bytes32 messageType
-    );
-    
+    event MessageSent(bytes32 indexed messageId, address indexed from, address indexed to, bytes32 messageType);
+
     event MessageDelivered(bytes32 indexed messageId);
     event RateLimitUpdated(uint256 newDelay);
 
@@ -51,7 +44,6 @@ contract MessageRouter is Pausable, ReentrancyGuard {
      * @param _registry Address of the AgentRegistry contract
      */
     constructor(address _registry) {
-
         registry = AgentRegistry(_registry);
     }
 
@@ -68,22 +60,23 @@ contract MessageRouter is Pausable, ReentrancyGuard {
      * @param messageType Type identifier for the message
      * @return messageId Unique identifier for the sent message
      */
-    function sendMessage(
-        address to,
-        string memory content,
-        bytes32 messageType
-    ) external onlyRegisteredAgent whenNotPaused nonReentrant returns (bytes32) {
+    function sendMessage(address to, string memory content, bytes32 messageType)
+        external
+        onlyRegisteredAgent
+        whenNotPaused
+        nonReentrant
+        returns (bytes32)
+    {
         // Input validation first
         require(bytes(content).length > 0, "Content required");
         AgentRegistry.Agent memory recipient = registry.getAgent(to);
         require(recipient.active, "Recipient not active");
-        
+
         // Rate limiting checks after validation
         _checkRateLimit(msg.sender);
 
-        bytes32 messageId = keccak256(
-            abi.encodePacked(msg.sender, to, content, block.timestamp, messageCounts[msg.sender])
-        );
+        bytes32 messageId =
+            keccak256(abi.encodePacked(msg.sender, to, content, block.timestamp, messageCounts[msg.sender]));
 
         messages[messageId] = Message({
             from: msg.sender,
@@ -97,7 +90,7 @@ contract MessageRouter is Pausable, ReentrancyGuard {
 
         agentMessages[to].push(messageId);
         messageCounts[msg.sender]++;
-        
+
         // Update rate limiting
         lastMessageTime[msg.sender] = block.timestamp;
         messagesSentInWindow[msg.sender]++;
@@ -146,7 +139,7 @@ contract MessageRouter is Pausable, ReentrancyGuard {
         bytes32[] memory allMessages = agentMessages[agent];
         uint256 undeliveredCount = 0;
 
-        for (uint i = 0; i < allMessages.length; i++) {
+        for (uint256 i = 0; i < allMessages.length; i++) {
             if (!messages[allMessages[i]].delivered) {
                 undeliveredCount++;
             }
@@ -155,7 +148,7 @@ contract MessageRouter is Pausable, ReentrancyGuard {
         bytes32[] memory undelivered = new bytes32[](undeliveredCount);
         uint256 index = 0;
 
-        for (uint i = 0; i < allMessages.length; i++) {
+        for (uint256 i = 0; i < allMessages.length; i++) {
             if (!messages[allMessages[i]].delivered) {
                 undelivered[index] = allMessages[i];
                 index++;
@@ -174,23 +167,19 @@ contract MessageRouter is Pausable, ReentrancyGuard {
         if (lastMessageTime[sender] > 0) {
             // Check minimum delay between messages
             require(
-                block.timestamp >= lastMessageTime[sender] + messageDelay,
-                "MessageRouter: rate limit - too frequent"
+                block.timestamp >= lastMessageTime[sender] + messageDelay, "MessageRouter: rate limit - too frequent"
             );
         }
-        
+
         // Reset window if needed
         if (lastMessageTime[sender] == 0 || block.timestamp >= lastMessageTime[sender] + RATE_LIMIT_WINDOW) {
             messagesSentInWindow[sender] = 0;
         }
-        
+
         // Check messages per window
-        require(
-            messagesSentInWindow[sender] < MAX_MESSAGES_PER_WINDOW,
-            "MessageRouter: rate limit - too many messages"
-        );
+        require(messagesSentInWindow[sender] < MAX_MESSAGES_PER_WINDOW, "MessageRouter: rate limit - too many messages");
     }
-    
+
     /**
      * @notice Update the minimum delay between messages (only pauser)
      * @param newDelay New delay in seconds
@@ -203,5 +192,4 @@ contract MessageRouter is Pausable, ReentrancyGuard {
 
     // Storage gap for future upgrades
     uint256[50] private __gap;
-
 }

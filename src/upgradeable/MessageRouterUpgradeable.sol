@@ -15,16 +15,13 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     /// @custom:storage-location erc7201:a2a.storage.MessageRouter
     struct MessageRouterStorage {
         AgentRegistryUpgradeable registry;
-        
         mapping(bytes32 => Message) messages;
         mapping(address => bytes32[]) agentMessages;
         mapping(address => uint256) messageCounts;
-        
         // Rate limiting
         mapping(address => uint256) lastMessageTime;
         mapping(address => uint256) messagesSentInWindow;
         uint256 messageDelay; // Minimum delay between messages
-        
         // Pausable functionality
         bool paused;
         address pauser;
@@ -41,7 +38,7 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     }
 
     // keccak256(abi.encode(uint256(keccak256("a2a.storage.MessageRouter")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant MessageRouterStorageLocation = 
+    bytes32 private constant MessageRouterStorageLocation =
         0xa2a0000000000000000000000000000000000000000000000000000000000002;
 
     function _getMessageRouterStorage() private pure returns (MessageRouterStorage storage $) {
@@ -53,13 +50,8 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     uint256 public constant RATE_LIMIT_WINDOW = 1 hours;
     uint256 public constant MAX_MESSAGES_PER_WINDOW = 100;
 
-    event MessageSent(
-        bytes32 indexed messageId,
-        address indexed from,
-        address indexed to,
-        bytes32 messageType
-    );
-    
+    event MessageSent(bytes32 indexed messageId, address indexed from, address indexed to, bytes32 messageType);
+
     event MessageDelivered(bytes32 indexed messageId);
     event RateLimitUpdated(uint256 newDelay);
     event Paused(address account);
@@ -104,7 +96,7 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     function initialize(address _registry, address initialOwner) public initializer {
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
-        
+
         MessageRouterStorage storage $ = _getMessageRouterStorage();
         $.registry = AgentRegistryUpgradeable(_registry);
         $.messageDelay = 5 seconds;
@@ -119,24 +111,24 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
      * @param messageType Type identifier for the message
      * @return messageId Unique identifier for the sent message
      */
-    function sendMessage(
-        address to,
-        string memory content,
-        bytes32 messageType
-    ) external onlyRegisteredAgent whenNotPaused returns (bytes32) {
+    function sendMessage(address to, string memory content, bytes32 messageType)
+        external
+        onlyRegisteredAgent
+        whenNotPaused
+        returns (bytes32)
+    {
         MessageRouterStorage storage $ = _getMessageRouterStorage();
-        
+
         // Input validation first
         require(bytes(content).length > 0, "Content required");
         AgentRegistryUpgradeable.Agent memory recipient = $.registry.getAgent(to);
         require(recipient.active, "Recipient not active");
-        
+
         // Rate limiting checks after validation
         _checkRateLimit(msg.sender);
 
-        bytes32 messageId = keccak256(
-            abi.encodePacked(msg.sender, to, content, block.timestamp, $.messageCounts[msg.sender])
-        );
+        bytes32 messageId =
+            keccak256(abi.encodePacked(msg.sender, to, content, block.timestamp, $.messageCounts[msg.sender]));
 
         $.messages[messageId] = Message({
             from: msg.sender,
@@ -150,7 +142,7 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
 
         $.agentMessages[to].push(messageId);
         $.messageCounts[msg.sender]++;
-        
+
         // Update rate limiting
         $.lastMessageTime[msg.sender] = block.timestamp;
         $.messagesSentInWindow[msg.sender]++;
@@ -203,7 +195,7 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         bytes32[] memory allMessages = $.agentMessages[agent];
         uint256 undeliveredCount = 0;
 
-        for (uint i = 0; i < allMessages.length; i++) {
+        for (uint256 i = 0; i < allMessages.length; i++) {
             if (!$.messages[allMessages[i]].delivered) {
                 undeliveredCount++;
             }
@@ -212,7 +204,7 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         bytes32[] memory undelivered = new bytes32[](undeliveredCount);
         uint256 index = 0;
 
-        for (uint i = 0; i < allMessages.length; i++) {
+        for (uint256 i = 0; i < allMessages.length; i++) {
             if (!$.messages[allMessages[i]].delivered) {
                 undelivered[index] = allMessages[i];
                 index++;
@@ -228,7 +220,7 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
      */
     function _checkRateLimit(address sender) private {
         MessageRouterStorage storage $ = _getMessageRouterStorage();
-        
+
         // Skip delay check for first message
         if ($.lastMessageTime[sender] > 0) {
             // Check minimum delay between messages
@@ -237,26 +229,25 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
                 "MessageRouter: rate limit - too frequent"
             );
         }
-        
+
         // Reset window if needed
         if ($.lastMessageTime[sender] == 0 || block.timestamp >= $.lastMessageTime[sender] + RATE_LIMIT_WINDOW) {
             $.messagesSentInWindow[sender] = 0;
         }
-        
+
         // Check messages per window
         require(
-            $.messagesSentInWindow[sender] < MAX_MESSAGES_PER_WINDOW,
-            "MessageRouter: rate limit - too many messages"
+            $.messagesSentInWindow[sender] < MAX_MESSAGES_PER_WINDOW, "MessageRouter: rate limit - too many messages"
         );
     }
-    
+
     /**
      * @notice Update the minimum delay between messages (only pauser)
      * @param newDelay New delay in seconds
      */
     function updateMessageDelay(uint256 newDelay) external onlyPauser {
         require(newDelay >= 1 seconds && newDelay <= 1 hours, "Invalid delay");
-        
+
         MessageRouterStorage storage $ = _getMessageRouterStorage();
         $.messageDelay = newDelay;
         emit RateLimitUpdated(newDelay);
@@ -293,7 +284,7 @@ contract MessageRouterUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
 
     function changePauser(address newPauser) external onlyPauser {
         require(newPauser != address(0), "MessageRouter: new pauser is the zero address");
-        
+
         MessageRouterStorage storage $ = _getMessageRouterStorage();
         address oldPauser = $.pauser;
         $.pauser = newPauser;

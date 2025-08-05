@@ -68,5 +68,4 @@ abstract contract Pausable is AccessControl {
 
     // Storage gap for future upgrades
     uint256[50] private __gap;
-
 }

@@ -18,7 +18,6 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         mapping(bytes32 => address[]) capabilityToAgents;
         address[] allAgents;
         uint256 activeAgentsCount;
-        
         // Pausable functionality
         bool paused;
         address pauser;
@@ -35,7 +34,7 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     }
 
     // keccak256(abi.encode(uint256(keccak256("a2a.storage.AgentRegistry")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant AgentRegistryStorageLocation = 
+    bytes32 private constant AgentRegistryStorageLocation =
         0xa2a0000000000000000000000000000000000000000000000000000000000001;
 
     function _getAgentRegistryStorage() private pure returns (AgentRegistryStorage storage $) {
@@ -87,7 +86,7 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     function initialize(address initialOwner) public initializer {
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
-        
+
         AgentRegistryStorage storage $ = _getAgentRegistryStorage();
         $.paused = false;
         $.pauser = initialOwner;
@@ -99,13 +98,12 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
      * @param endpoint The API endpoint URL for the agent
      * @param capabilities Array of capability identifiers the agent supports
      */
-    function registerAgent(
-        string memory name,
-        string memory endpoint,
-        bytes32[] memory capabilities
-    ) external whenNotPaused {
+    function registerAgent(string memory name, string memory endpoint, bytes32[] memory capabilities)
+        external
+        whenNotPaused
+    {
         AgentRegistryStorage storage $ = _getAgentRegistryStorage();
-        
+
         require(bytes(name).length > 0, "Name required");
         require(bytes(endpoint).length > 0, "Endpoint required");
         require($.agents[msg.sender].owner == address(0), "Agent already registered");
@@ -123,7 +121,7 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         $.allAgents.push(msg.sender);
         $.activeAgentsCount++;
 
-        for (uint i = 0; i < capabilities.length; i++) {
+        for (uint256 i = 0; i < capabilities.length; i++) {
             $.capabilityToAgents[capabilities[i]].push(msg.sender);
         }
 
@@ -136,7 +134,7 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
      */
     function updateEndpoint(string memory newEndpoint) external onlyAgentOwner(msg.sender) whenNotPaused {
         require(bytes(newEndpoint).length > 0, "Endpoint required");
-        
+
         AgentRegistryStorage storage $ = _getAgentRegistryStorage();
         $.agents[msg.sender].endpoint = newEndpoint;
         emit AgentUpdated(msg.sender, newEndpoint);
@@ -148,7 +146,7 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     function deactivateAgent() external onlyAgentOwner(msg.sender) whenNotPaused {
         AgentRegistryStorage storage $ = _getAgentRegistryStorage();
         require($.agents[msg.sender].active, "Agent already inactive");
-        
+
         $.agents[msg.sender].active = false;
         $.activeAgentsCount--;
         emit AgentDeactivated(msg.sender);
@@ -161,7 +159,7 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         AgentRegistryStorage storage $ = _getAgentRegistryStorage();
         require(!$.agents[msg.sender].active, "Agent already active");
         require($.agents[msg.sender].owner != address(0), "Agent not registered");
-        
+
         $.agents[msg.sender].active = true;
         $.activeAgentsCount++;
         emit AgentUpdated(msg.sender, $.agents[msg.sender].endpoint);
@@ -233,7 +231,7 @@ contract AgentRegistryUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
 
     function changePauser(address newPauser) external onlyPauser {
         require(newPauser != address(0), "AgentRegistry: new pauser is the zero address");
-        
+
         AgentRegistryStorage storage $ = _getAgentRegistryStorage();
         address oldPauser = $.pauser;
         $.pauser = newPauser;

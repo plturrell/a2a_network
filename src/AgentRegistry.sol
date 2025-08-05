@@ -30,12 +30,8 @@ contract AgentRegistry is Pausable, ReentrancyGuard {
     uint256 public activeAgentsCount;
 
     // --- Access Control ---
-    
 
-    constructor() {
-        
-        
-    }
+    constructor() {}
 
     event AgentRegistered(address indexed agent, string name, string endpoint);
     event AgentUpdated(address indexed agent, string endpoint);
@@ -55,11 +51,11 @@ contract AgentRegistry is Pausable, ReentrancyGuard {
      * @param endpoint The API endpoint URL for the agent
      * @param capabilities Array of capability identifiers the agent supports
      */
-    function registerAgent(
-        string memory name,
-        string memory endpoint,
-        bytes32[] memory capabilities
-    ) external whenNotPaused nonReentrant {
+    function registerAgent(string memory name, string memory endpoint, bytes32[] memory capabilities)
+        external
+        whenNotPaused
+        nonReentrant
+    {
         require(bytes(name).length > 0, "Name required");
         require(bytes(endpoint).length > 0, "Endpoint required");
         require(agents[msg.sender].owner == address(0), "Agent already registered");
@@ -77,7 +73,7 @@ contract AgentRegistry is Pausable, ReentrancyGuard {
         allAgents.push(msg.sender);
         activeAgentsCount++;
 
-        for (uint i = 0; i < capabilities.length; i++) {
+        for (uint256 i = 0; i < capabilities.length; i++) {
             _capabilityToAgents[capabilities[i]].add(msg.sender);
         }
 
@@ -195,8 +191,6 @@ contract AgentRegistry is Pausable, ReentrancyGuard {
         emit ReputationChanged(agent, -int256(amount), newVal);
     }
 
-    
     uint256[49] private __gap;
     // slot reserved for potential future _capabilityToAgents replacement
-
 }

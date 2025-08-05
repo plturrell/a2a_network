@@ -15,7 +15,7 @@ contract AgentRegistryTest is Test {
 
     function testRegisterAgent() public {
         vm.startPrank(agent1);
-        
+
         bytes32[] memory capabilities = new bytes32[](2);
         capabilities[0] = keccak256("data_analysis");
         capabilities[1] = keccak256("market_research");
@@ -34,12 +34,12 @@ contract AgentRegistryTest is Test {
 
     function testCannotRegisterTwice() public {
         vm.startPrank(agent1);
-        
+
         bytes32[] memory capabilities = new bytes32[](1);
         capabilities[0] = keccak256("test");
 
         registry.registerAgent("Agent1", "http://localhost:3000", capabilities);
-        
+
         vm.expectRevert("Agent already registered");
         registry.registerAgent("Agent1", "http://localhost:3001", capabilities);
 
@@ -48,7 +48,7 @@ contract AgentRegistryTest is Test {
 
     function testUpdateEndpoint() public {
         vm.startPrank(agent1);
-        
+
         bytes32[] memory capabilities = new bytes32[](1);
         capabilities[0] = keccak256("test");
 
@@ -63,7 +63,7 @@ contract AgentRegistryTest is Test {
 
     function testFindAgentsByCapability() public {
         bytes32 capability = keccak256("data_analysis");
-        
+
         vm.startPrank(agent1);
         bytes32[] memory capabilities1 = new bytes32[](1);
         capabilities1[0] = capability;
@@ -84,7 +84,7 @@ contract AgentRegistryTest is Test {
 
     function testDeactivateAgent() public {
         vm.startPrank(agent1);
-        
+
         bytes32[] memory capabilities = new bytes32[](1);
         capabilities[0] = keccak256("test");
 
@@ -123,21 +123,21 @@ contract AgentRegistryTest is Test {
         bytes32[] memory capabilities = new bytes32[](1);
         capabilities[0] = keccak256("test");
         registry.registerAgent("Agent1", "http://localhost:3000", capabilities);
-        
+
         // Deactivate
         registry.deactivateAgent();
         assertFalse(registry.getAgent(agent1).active);
         assertEq(registry.activeAgentsCount(), 0);
-        
+
         // Reactivate
         registry.reactivateAgent();
         assertTrue(registry.getAgent(agent1).active);
         assertEq(registry.activeAgentsCount(), 1);
-        
+
         // Cannot reactivate if already active
         vm.expectRevert("Agent already active");
         registry.reactivateAgent();
-        
+
         vm.stopPrank();
     }
 
@@ -148,31 +148,31 @@ contract AgentRegistryTest is Test {
         capabilities[0] = keccak256("test");
         registry.registerAgent("Agent1", "http://localhost:3000", capabilities);
         vm.stopPrank();
-        
+
         // Only pauser can pause
         vm.prank(agent1);
         vm.expectRevert("Pausable: caller is not the pauser");
         registry.pause();
-        
+
         // Pause the registry
         registry.pause();
         assertTrue(registry.paused());
-        
+
         // Cannot register when paused
         vm.startPrank(agent2);
         vm.expectRevert("Pausable: paused");
         registry.registerAgent("Agent2", "http://localhost:3001", capabilities);
         vm.stopPrank();
-        
+
         // Cannot update when paused
         vm.prank(agent1);
         vm.expectRevert("Pausable: paused");
         registry.updateEndpoint("http://localhost:4000");
-        
+
         // Unpause
         registry.unpause();
         assertFalse(registry.paused());
-        
+
         // Can register again
         vm.startPrank(agent2);
         registry.registerAgent("Agent2", "http://localhost:3001", capabilities);
@@ -184,13 +184,13 @@ contract AgentRegistryTest is Test {
         bytes32[] memory capabilities = new bytes32[](1);
         capabilities[0] = keccak256("test");
         registry.registerAgent("Agent1", "http://localhost:3000", capabilities);
-        
+
         registry.deactivateAgent();
-        
+
         // Try to deactivate again
         vm.expectRevert("Agent already inactive");
         registry.deactivateAgent();
-        
+
         vm.stopPrank();
     }
 }
