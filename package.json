@@ -1,0 +1,15 @@
+{
+  "name": "a2a-network-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev dependencies for auto-generating Solidity contract docs and ABIs for the A2A Network.",
+  "scripts": {
+    "docs": "solidity-docgen --output docs --templates node_modules/solidity-docgen/templates --solc-module solcjs",
+    "format": "forge fmt",
+    "lint": "solhint 'src/**/*.sol'"
+  },
+  "devDependencies": {
+    "solidity-docgen": "^0.6.0",
+    "solhint": "^3.6.2"
+  }
+}
